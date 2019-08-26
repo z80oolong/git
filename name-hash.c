@@ -268,7 +268,7 @@ static struct dir_entry *hash_dir_entry_with_parent_and_prefix(
 	assert((parent != NULL) ^ (strchr(prefix->buf, '/') == NULL));
 
 	if (parent)
-		hash = memihash_cont(parent->ent.hash,
+		hash = memihash_cont(parent->ent._hash,
 			prefix->buf + parent->namelen,
 			prefix->len - parent->namelen);
 	else
@@ -289,7 +289,8 @@ static struct dir_entry *hash_dir_entry_with_parent_and_prefix(
 			unlock_dir_mutex(lock_nr);
 
 			/* All I really need here is an InterlockedIncrement(&(parent->nr)) */
-			lock_nr = compute_dir_lock_nr(&istate->dir_hash, parent->ent.hash);
+			lock_nr = compute_dir_lock_nr(&istate->dir_hash,
+							parent->ent._hash);
 			lock_dir_mutex(lock_nr);
 			parent->nr++;
 		}
@@ -427,10 +428,10 @@ static int handle_range_1(
 		lazy_entries[k].dir = parent;
 		if (parent) {
 			lazy_entries[k].hash_name = memihash_cont(
-				parent->ent.hash,
+				parent->ent._hash,
 				ce_k->name + parent->namelen,
 				ce_namelen(ce_k) - parent->namelen);
-			lazy_entries[k].hash_dir = parent->ent.hash;
+			lazy_entries[k].hash_dir = parent->ent._hash;
 		} else {
 			lazy_entries[k].hash_name = memihash(ce_k->name, ce_namelen(ce_k));
 		}

@@ -145,7 +145,7 @@ struct hashmap_entry {
 	struct hashmap_entry *next;
 
 	/* entry's hash code */
-	unsigned int hash;
+	unsigned int _hash;
 };
 
 /*
@@ -247,7 +247,7 @@ void hashmap_free(struct hashmap *map, int free_entries);
 static inline void
 hashmap_entry_init(struct hashmap_entry *e, unsigned int hash)
 {
-	e->hash = hash;
+	e->_hash = hash;
 	e->next = NULL;
 }
 

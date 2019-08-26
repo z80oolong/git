@@ -144,18 +144,19 @@ static const void *anonymize_mem(struct hashmap *map,
 				 const void *orig, size_t *len)
 {
 	struct anonymized_entry key, *ret;
+	unsigned int hash = memhash(orig, *len);
 
 	if (!map->cmpfn)
 		hashmap_init(map, anonymized_entry_cmp, NULL, 0);
 
-	hashmap_entry_init(&key.hash, memhash(orig, *len));
+	hashmap_entry_init(&key.hash, hash);
 	key.orig = orig;
 	key.orig_len = *len;
 	ret = hashmap_get(map, &key, NULL);
 
 	if (!ret) {
 		ret = xmalloc(sizeof(*ret));
-		hashmap_entry_init(&ret->hash, key.hash.hash);
+		hashmap_entry_init(&ret->hash, hash);
 		ret->orig = xstrdup(orig);
 		ret->orig_len = *len;
 		ret->anon = generate(orig, len);

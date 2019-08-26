@@ -96,14 +96,14 @@ static inline int entry_equals(const struct hashmap *map,
 		const void *keydata)
 {
 	return (e1 == e2) ||
-	       (e1->hash == e2->hash &&
+	       (e1->_hash == e2->_hash &&
 		!map->cmpfn(map->cmpfn_data, e1, e2, keydata));
 }
 
 static inline unsigned int bucket(const struct hashmap *map,
 		const struct hashmap_entry *key)
 {
-	return key->hash & (map->tablesize - 1);
+	return key->_hash & (map->tablesize - 1);
 }
 
 int hashmap_bucket(const struct hashmap *map, unsigned int hash)
@@ -287,19 +287,20 @@ const void *memintern(const void *data, size_t len)
 {
 	static struct hashmap map;
 	struct pool_entry key, *e;
+	unsigned int hash = memhash(data, len);
 
 	/* initialize string pool hashmap */
 	if (!map.tablesize)
 		hashmap_init(&map, (hashmap_cmp_fn) pool_entry_cmp, NULL, 0);
 
 	/* lookup interned string in pool */
-	hashmap_entry_init(&key.ent, memhash(data, len));
+	hashmap_entry_init(&key.ent, hash);
 	key.len = len;
 	e = hashmap_get(&map, &key, data);
 	if (!e) {
 		/* not found: create it */
 		FLEX_ALLOC_MEM(e, data, data, len);
-		hashmap_entry_init(&e->ent, key.ent.hash);
+		hashmap_entry_init(&e->ent, hash);
 		e->len = len;
 		hashmap_add(&map, e);
 	}
