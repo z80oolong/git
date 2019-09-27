@@ -78,6 +78,53 @@ static int core_compression_seen;
 static int pack_compression_seen;
 static int zlib_compression_seen;
 
+#ifndef NO_USE_ERRLEVEL_CONFIG_LOCK_FAILURE
+/*
+ * If the git configuration file (.git/config) cannot be locked on a shared
+ * file system on Android, VFAT, NTFS, etc., then git causes operations such as
+ * clone to fail with an error message.
+ *
+ * modified by Z.OOL. (mailto:zool@zool.jpn.org)
+ * ref.) https://github.com/termux/termux-packages/issues/227
+ */
+
+#define QUIET_CONFIG_LOCK_FAILURE 0
+#define WARN_CONFIG_LOCK_FAILURE  1
+#define ERROR_CONFIG_LOCK_FAILURE 2
+
+static void warn_config_lock_failure(void) {
+	static int _warned = 0;
+
+	if (!_warned) {
+		warning("Cannot lock .git/config bon this file system - For example, this file system is VFAT or NTFS, etc.");
+		_warned = 1;
+	}
+}
+
+static int error_level_config_lock_failure(void) {
+	static int _level = -1; const char *level;
+
+	if (_level < 0) {
+		if(git_config_get_string_const("core.errorLevelConfigLockFailure", &level) != 0) {
+			_level = WARN_CONFIG_LOCK_FAILURE;
+			return _level;
+		}
+
+		if (!strcmp(level, "error")) {
+			_level = ERROR_CONFIG_LOCK_FAILURE;
+		} else if (!strcmp(level, "warn")) {
+			_level = WARN_CONFIG_LOCK_FAILURE;
+		} else if (!strcmp(level, "quiet")) {
+			_level = QUIET_CONFIG_LOCK_FAILURE;
+		} else {
+			_level = WARN_CONFIG_LOCK_FAILURE;
+		}
+	}
+
+	return _level;
+}
+#endif
+
 static int config_file_fgetc(struct config_source *conf)
 {
 	return getc_unlocked(conf->u.file);
@@ -2847,9 +2894,23 @@ int git_config_set_multivar_in_file_gently(const char *config_filename,
 		in_fd = -1;
 
 		if (chmod(get_lock_file_path(&lock), st.st_mode & 07777) < 0) {
-			error_errno(_("chmod on %s failed"), get_lock_file_path(&lock));
+#ifndef NO_USE_ERRLEVEL_CONFIG_LOCK_FAILURE
+			switch(error_level_config_lock_failure()) {
+				case ERROR_CONFIG_LOCK_FAILURE:
+					error_errno("chmod on %s failed", get_lock_file_path(&lock));
+					ret = CONFIG_NO_WRITE;
+					goto out_free;
+				case WARN_CONFIG_LOCK_FAILURE:
+					warn_config_lock_failure();
+					break;
+				case QUIET_CONFIG_LOCK_FAILURE:
+					break;
+			}
+#else
+			error_errno("chmod on %s failed", get_lock_file_path(&lock));
 			ret = CONFIG_NO_WRITE;
 			goto out_free;
+#endif
 		}
 
 		if (store.seen_nr == 0) {
@@ -3085,9 +3146,21 @@ static int git_config_copy_or_rename_section_in_file(const char *config_filename
 	}
 
 	if (chmod(get_lock_file_path(&lock), st.st_mode & 07777) < 0) {
-		ret = error_errno(_("chmod on %s failed"),
-				  get_lock_file_path(&lock));
+#ifndef NO_USE_ERRLEVEL_CONFIG_LOCK_FAILURE
+		switch(error_level_config_lock_failure()) {
+			case ERROR_CONFIG_LOCK_FAILURE:
+				ret = error_errno("chmod on %s failed", get_lock_file_path(&lock));
+				goto out;
+			case WARN_CONFIG_LOCK_FAILURE:
+				warn_config_lock_failure();
+				break;
+			case QUIET_CONFIG_LOCK_FAILURE:
+				break;
+		}
+#else
+		ret = error_errno("chmod on %s failed", get_lock_file_path(&lock));
 		goto out;
+#endif
 	}
 
 	while (fgets(buf, sizeof(buf), config_file)) {

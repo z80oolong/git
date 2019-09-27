@@ -57,7 +57,7 @@ INSTALL_X1 =
 INSTALL_A0 = find # space is required here
 INSTALL_A1 = | cpio -pud
 INSTALL_L0 = rm -f # space is required here
-INSTALL_L1 = && ln # space is required here
+INSTALL_L1 = && ln -s # space is required here
 INSTALL_L2 =
 INSTALL_L3 =
 
@@ -87,7 +87,7 @@ ifndef V
 	INSTALL_L0 = dst=
 	INSTALL_L1 = && src=
 	INSTALL_L2 = && dst=
-	INSTALL_L3 = && echo '   ' 'LINK       ' `basename "$$dst"` '->' `basename "$$src"` && rm -f "$$dst" && ln "$$src" "$$dst"
+	INSTALL_L3 = && echo '   ' 'LINK       ' `basename "$$dst"` '->' `basename "$$src"` && rm -f "$$dst" && ln -s "$$src" "$$dst"
 
 	CLEAN_DST = echo ' ' UNINSTALL
 	REMOVE_D0 = dir=
