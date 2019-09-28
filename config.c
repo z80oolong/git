@@ -2897,7 +2897,7 @@ int git_config_set_multivar_in_file_gently(const char *config_filename,
 #ifndef NO_USE_ERRLEVEL_CONFIG_LOCK_FAILURE
 			switch(error_level_config_lock_failure()) {
 				case ERROR_CONFIG_LOCK_FAILURE:
-					error_errno("chmod on %s failed", get_lock_file_path(&lock));
+					error_errno(_("chmod on %s failed"), get_lock_file_path(&lock));
 					ret = CONFIG_NO_WRITE;
 					goto out_free;
 				case WARN_CONFIG_LOCK_FAILURE:
@@ -2907,7 +2907,7 @@ int git_config_set_multivar_in_file_gently(const char *config_filename,
 					break;
 			}
 #else
-			error_errno("chmod on %s failed", get_lock_file_path(&lock));
+			error_errno(_("chmod on %s failed"), get_lock_file_path(&lock));
 			ret = CONFIG_NO_WRITE;
 			goto out_free;
 #endif
@@ -3149,7 +3149,7 @@ static int git_config_copy_or_rename_section_in_file(const char *config_filename
 #ifndef NO_USE_ERRLEVEL_CONFIG_LOCK_FAILURE
 		switch(error_level_config_lock_failure()) {
 			case ERROR_CONFIG_LOCK_FAILURE:
-				ret = error_errno("chmod on %s failed", get_lock_file_path(&lock));
+				ret = error_errno(_("chmod on %s failed"), get_lock_file_path(&lock));
 				goto out;
 			case WARN_CONFIG_LOCK_FAILURE:
 				warn_config_lock_failure();
@@ -3158,7 +3158,8 @@ static int git_config_copy_or_rename_section_in_file(const char *config_filename
 				break;
 		}
 #else
-		ret = error_errno("chmod on %s failed", get_lock_file_path(&lock));
+		ret = error_errno(_("chmod on %s failed"),
+				  get_lock_file_path(&lock));
 		goto out;
 #endif
 	}
