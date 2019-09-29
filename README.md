@@ -1,3 +1,29 @@
+# git -- git において config ファイルの lock に失敗する場合の挙動を変更する為の修正版
+
+## 概要
+
+分散型バージョン管理システムである [git][GIT_] において、 VFAT ファイルシステム及び [Android OS][ANDR] 及び [Debian noroot 環境][DBNR]における外部ストレージ領域において、 ```git clone``` コマンド等を用いて新しい git リポジトリを作成する場合に、 ```.git/config``` ファイルの lock ファイルについて lock ファイルの権限の変更に失敗するために、 ```.git/config``` の lock に失敗し、リポジトリが作成できない問題が発生しています。
+
+この git リポジトリに置かれている [git][GIT_] のソースコードは、 [git][GIT_] において、前述のような ```.git/config``` ファイルの lock に失敗する場合の挙動について、 lock の失敗を無視するかどうかの [git][GIT_] の挙動を設定する事を可能にするように修正したものです。
+
+また、 [git][GIT_] のインストール時において、[ハードリンク][LINK]に代えて[シンボリックリンク][SLNK]を使用する修正も同時に加えています。
+
+なお、この git リポジトリに置かれている [git][GIT_] のソースコードは、 [git][GIT_] リポジトリ "[git 2.17.0 以降において config ファイルの lock に失敗する場合の挙動を変更する差分ファイル][GITC]" に置かれた差分ファイルの作成用のリポジトリです。
+
+実際に lock の失敗を無視するかどうかの [git][GIT_] の挙動を設定する事を可能にする git をビルドする際には、前述のリポジトリを参照して、オリジナルの git のソースコードに差分ファイルを適用してビルドするようにして下さい。
+
+## 使用条件
+
+この git リポジトリに置かれている [git][GIT_] のソースコードは、 [Junio C Hamano 氏][JUNI]を始めとする git の開発コミュニティ によるコードを、 [Z.OOL. (mailto:zool@zool.jpn.org)][ZOOL] によって、git において config ファイルの lock に失敗する場合の挙動を変更するように修正したものです。
+
+従って、本ソースコードは、 git のライセンスと同様である [Lesser GPL 2.1][LGPL] に基づいて配布されるものとします。詳細については、本リポジトリに同梱する ```LGPL-2.1``` を参照して下さい。
+
+## 追記
+
+以下に、オリジナルの [git][GIT_] のソースコードの [README.md][READ] の原文を示します。
+
+----
+
 [![Build Status](https://dev.azure.com/git/git/_apis/build/status/git.git)](https://dev.azure.com/git/git/_build/latest?definitionId=11)
 
 Git - fast, scalable, distributed revision control system
@@ -64,3 +90,19 @@ and the name as (depending on your mood):
 [Documentation/giteveryday.txt]: Documentation/giteveryday.txt
 [Documentation/gitcvs-migration.txt]: Documentation/gitcvs-migration.txt
 [Documentation/SubmittingPatches]: Documentation/SubmittingPatches
+
+<!-- 外部リンク一覧 -->
+
+[DBNR]:https://play.google.com/store/apps/details?id=com.cuntubuntu&hl=ja
+[ANDR]:https://www.android.com/intl/ja_jp/
+[GIT_]:https://git-scm.com/
+[GTGH]:https://github.com/git/git
+[LINK]:http://man7.org/linux/man-pages/man2/link.2.html
+[SLNK]:http://man7.org/linux/man-pages/man2/symlink.2.html
+[TERM]:https://termux.com/
+[GITC]:https://github.com/z80oolong/git-config-fix
+[JUNI]:mailto:gitster@pobox.com
+[TAP1]:https://github.com/z80oolong/homebrew-git
+[ZOOL]:http://zool.jpn.org/
+[LGPL]:http://www.gnu.org/licenses/lgpl-2.1.html
+[READ]:https://github.com/git/git/blob/master/README.md
