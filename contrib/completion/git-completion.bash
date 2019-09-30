@@ -1361,7 +1361,9 @@ _git_checkout ()
 	esac
 }
 
-__git_cherry_pick_inprogress_options="--continue --quit --abort"
+__git_sequencer_inprogress_options="--continue --quit --abort --skip"
+
+__git_cherry_pick_inprogress_options=$__git_sequencer_inprogress_options
 
 _git_cherry_pick ()
 {
@@ -2041,7 +2043,7 @@ _git_rebase ()
 			--autosquash --no-autosquash
 			--fork-point --no-fork-point
 			--autostash --no-autostash
-			--verify --no-verify
+			--verify --no-verify --keep-base
 			--keep-empty --root --force-rebase --no-ff
 			--rerere-autoupdate
 			--exec
@@ -2624,7 +2626,7 @@ _git_restore ()
 	esac
 }
 
-__git_revert_inprogress_options="--continue --quit --abort"
+__git_revert_inprogress_options=$__git_sequencer_inprogress_options
 
 _git_revert ()
 {
