@@ -414,6 +414,7 @@ extern struct index_state the_index;
 #define add_file_to_cache(path, flags) add_file_to_index(&the_index, (path), (flags))
 #define chmod_cache_entry(ce, flip) chmod_index_entry(&the_index, (ce), (flip))
 #define refresh_cache(flags) refresh_index(&the_index, (flags), NULL, NULL, NULL)
+#define refresh_and_write_cache(refresh_flags, write_flags, gentle) repo_refresh_and_write_index(the_repository, (refresh_flags), (write_flags), (gentle), NULL, NULL, NULL)
 #define ce_match_stat(ce, st, options) ie_match_stat(&the_index, (ce), (st), (options))
 #define ce_modified(ce, st, options) ie_modified(&the_index, (ce), (st), (options))
 #define cache_dir_exists(name, namelen) index_dir_exists(&the_index, (name), (namelen))
@@ -834,6 +835,23 @@ void fill_stat_cache_info(struct index_state *istate, struct cache_entry *ce, st
 #define REFRESH_IN_PORCELAIN	0x0020	/* user friendly output, not "needs update" */
 #define REFRESH_PROGRESS	0x0040  /* show progress bar if stderr is tty */
 int refresh_index(struct index_state *, unsigned int flags, const struct pathspec *pathspec, char *seen, const char *header_msg);
+/*
+ * Refresh the index and write it to disk.
+ *
+ * 'refresh_flags' is passed directly to 'refresh_index()', while
+ * 'COMMIT_LOCK | write_flags' is passed to 'write_locked_index()', so
+ * the lockfile is always either committed or rolled back.
+ *
+ * If 'gentle' is passed, errors locking the index are ignored.
+ *
+ * Return 1 if refreshing the index returns an error, -1 if writing
+ * the index to disk fails, 0 on success.
+ *
+ * Note that if refreshing the index returns an error, we still write
+ * out the index (unless locking fails).
+ */
+int repo_refresh_and_write_index(struct repository*, unsigned int refresh_flags, unsigned int write_flags, int gentle, const struct pathspec *, char *seen, const char *header_msg);
+
 struct cache_entry *refresh_cache_entry(struct index_state *, struct cache_entry *, unsigned int);
 
 void set_alternate_index_output(const char *);
@@ -1049,7 +1067,6 @@ const char *repo_find_unique_abbrev(struct repository *r, const struct object_id
 int repo_find_unique_abbrev_r(struct repository *r, char *hex, const struct object_id *oid, int len);
 #define find_unique_abbrev_r(hex, oid, len) repo_find_unique_abbrev_r(the_repository, hex, oid, len)
 
-extern const unsigned char null_sha1[GIT_MAX_RAWSZ];
 extern const struct object_id null_oid;
 
 static inline int hashcmp(const unsigned char *sha1, const unsigned char *sha2)
@@ -1084,14 +1101,9 @@ static inline int oideq(const struct object_id *oid1, const struct object_id *oi
 	return hasheq(oid1->hash, oid2->hash);
 }
 
-static inline int is_null_sha1(const unsigned char *sha1)
-{
-	return hasheq(sha1, null_sha1);
-}
-
 static inline int is_null_oid(const struct object_id *oid)
 {
-	return hasheq(oid->hash, null_sha1);
+	return oideq(oid, &null_oid);
 }
 
 static inline void hashcpy(unsigned char *sha_dst, const unsigned char *sha_src)
@@ -1536,8 +1548,7 @@ struct date_mode {
 struct date_mode *date_mode_from_type(enum date_mode_type type);
 
 const char *show_date(timestamp_t time, int timezone, const struct date_mode *mode);
-void show_date_relative(timestamp_t time, const struct timeval *now,
-			struct strbuf *timebuf);
+void show_date_relative(timestamp_t time, struct strbuf *timebuf);
 void show_date_human(timestamp_t time, int tz, const struct timeval *now,
 			struct strbuf *timebuf);
 int parse_date(const char *date, struct strbuf *out);
@@ -1546,7 +1557,7 @@ int parse_expiry_date(const char *date, timestamp_t *timestamp);
 void datestamp(struct strbuf *out);
 #define approxidate(s) approxidate_careful((s), NULL)
 timestamp_t approxidate_careful(const char *, int *);
-timestamp_t approxidate_relative(const char *date, const struct timeval *now);
+timestamp_t approxidate_relative(const char *date);
 void parse_date_format(const char *format, struct date_mode *mode);
 int date_overflows(timestamp_t date);
 

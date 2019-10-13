@@ -6,7 +6,6 @@
 #include "mergesort.h"
 #include "packfile.h"
 #include "delta.h"
-#include "list.h"
 #include "streaming.h"
 #include "sha1-lookup.h"
 #include "commit.h"
@@ -20,12 +19,12 @@
 #include "promisor-remote.h"
 
 char *odb_pack_name(struct strbuf *buf,
-		    const unsigned char *sha1,
+		    const unsigned char *hash,
 		    const char *ext)
 {
 	strbuf_reset(buf);
 	strbuf_addf(buf, "%s/pack/pack-%s.%s", get_object_directory(),
-		    sha1_to_hex(sha1), ext);
+		    hash_to_hex(hash), ext);
 	return buf->buf;
 }
 

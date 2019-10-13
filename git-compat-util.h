@@ -344,6 +344,7 @@ typedef uintmax_t timestamp_t;
 #define PRItime PRIuMAX
 #define parse_timestamp strtoumax
 #define TIME_MAX UINTMAX_MAX
+#define TIME_MIN 0
 
 #ifndef PATH_SEP
 #define PATH_SEP ':'
@@ -1091,10 +1092,10 @@ static inline int strtol_i(char const *s, int base, int *result)
 	return 0;
 }
 
+void git_stable_qsort(void *base, size_t nmemb, size_t size,
+		      int(*compar)(const void *, const void *));
 #ifdef INTERNAL_QSORT
-void git_qsort(void *base, size_t nmemb, size_t size,
-	       int(*compar)(const void *, const void *));
-#define qsort git_qsort
+#define qsort git_stable_qsort
 #endif
 
 #define QSORT(base, n, compar) sane_qsort((base), (n), sizeof(*(base)), compar)
@@ -1104,6 +1105,9 @@ static inline void sane_qsort(void *base, size_t nmemb, size_t size,
 	if (nmemb > 1)
 		qsort(base, nmemb, size, compar);
 }
+
+#define STABLE_QSORT(base, n, compar) \
+	git_stable_qsort((base), (n), sizeof(*(base)), compar)
 
 #ifndef HAVE_ISO_QSORT_S
 int git_qsort_s(void *base, size_t nmemb, size_t size,
