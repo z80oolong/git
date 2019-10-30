@@ -1606,12 +1606,39 @@ test_expect_success 'From line has expected format' '
 	test_cmp from filtered
 '
 
+test_expect_success 'format-patch -o with no leading directories' '
+	rm -fr patches &&
+	git format-patch -o patches master..side &&
+	count=$(git rev-list --count master..side) &&
+	ls patches >list &&
+	test_line_count = $count list
+'
+
+test_expect_success 'format-patch -o with leading existing directories' '
+	rm -rf existing-dir &&
+	mkdir existing-dir &&
+	git format-patch -o existing-dir/patches master..side &&
+	count=$(git rev-list --count master..side) &&
+	ls existing-dir/patches >list &&
+	test_line_count = $count list
+'
+
+test_expect_success 'format-patch -o with leading non-existing directories' '
+	rm -rf non-existing-dir &&
+	git format-patch -o non-existing-dir/patches master..side &&
+	count=$(git rev-list --count master..side) &&
+	test_path_is_dir non-existing-dir &&
+	ls non-existing-dir/patches >list &&
+	test_line_count = $count list
+'
+
 test_expect_success 'format-patch format.outputDirectory option' '
 	test_config format.outputDirectory patches &&
 	rm -fr patches &&
 	git format-patch master..side &&
-	git rev-list master..side >list &&
-	test_line_count = $(ls patches | wc -l) list
+	count=$(git rev-list --count master..side) &&
+	ls patches >list &&
+	test_line_count = $count list
 '
 
 test_expect_success 'format-patch -o overrides format.outputDirectory' '

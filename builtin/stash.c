@@ -427,6 +427,8 @@ static int do_apply_stash(const char *prefix, struct stash_info *info,
 				return error(_("could not save index tree"));
 
 			reset_head();
+			discard_cache();
+			read_cache();
 		}
 	}
 
@@ -1390,7 +1392,7 @@ static int do_push_stash(const struct pathspec *ps, const char *stash_msg, int q
 			struct child_process cp = CHILD_PROCESS_INIT;
 			cp.git_cmd = 1;
 			argv_array_pushl(&cp.args, "reset", "--hard", "-q",
-					 NULL);
+					 "--no-recurse-submodules", NULL);
 			if (run_command(&cp)) {
 				ret = -1;
 				goto done;

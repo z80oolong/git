@@ -586,7 +586,7 @@ static int do_recursive_merge(struct repository *r,
 			      struct replay_opts *opts)
 {
 	struct merge_options o;
-	struct tree *result, *next_tree, *base_tree, *head_tree;
+	struct tree *next_tree, *base_tree, *head_tree;
 	int clean;
 	char **xopt;
 	struct lock_file index_lock = LOCK_INIT;
@@ -613,11 +613,10 @@ static int do_recursive_merge(struct repository *r,
 
 	clean = merge_trees(&o,
 			    head_tree,
-			    next_tree, base_tree, &result);
+			    next_tree, base_tree);
 	if (is_rebase_i(opts) && clean <= 0)
 		fputs(o.obuf.buf, stdout);
 	strbuf_release(&o.obuf);
-	diff_warn_rename_limit("merge.renamelimit", o.needed_rename_limit, 0);
 	if (clean < 0) {
 		rollback_lock_file(&index_lock);
 		return clean;
@@ -4398,9 +4397,14 @@ struct labels_entry {
 	char label[FLEX_ARRAY];
 };
 
-static int labels_cmp(const void *fndata, const struct labels_entry *a,
-		      const struct labels_entry *b, const void *key)
+static int labels_cmp(const void *fndata, const struct hashmap_entry *eptr,
+		      const struct hashmap_entry *entry_or_key, const void *key)
 {
+	const struct labels_entry *a, *b;
+
+	a = container_of(eptr, const struct labels_entry, entry);
+	b = container_of(entry_or_key, const struct labels_entry, entry);
+
 	return key ? strcmp(a->label, key) : strcmp(a->label, b->label);
 }
 
@@ -4496,8 +4500,8 @@ static const char *label_oid(struct object_id *oid, const char *label,
 	}
 
 	FLEX_ALLOC_STR(labels_entry, label, label);
-	hashmap_entry_init(labels_entry, strihash(label));
-	hashmap_add(&state->labels, labels_entry);
+	hashmap_entry_init(&labels_entry->entry, strihash(label));
+	hashmap_add(&state->labels, &labels_entry->entry);
 
 	FLEX_ALLOC_STR(string_entry, string, label);
 	oidcpy(&string_entry->entry.oid, oid);
@@ -4532,7 +4536,7 @@ static int make_script_with_merges(struct pretty_print_context *pp,
 
 	oidmap_init(&commit2todo, 0);
 	oidmap_init(&state.commit2label, 0);
-	hashmap_init(&state.labels, (hashmap_cmp_fn) labels_cmp, NULL, 0);
+	hashmap_init(&state.labels, labels_cmp, NULL, 0);
 	strbuf_init(&state.buf, 32);
 
 	if (revs->cmdline.nr && (revs->cmdline.rev[0].flags & BOTTOM)) {
@@ -4727,7 +4731,7 @@ static int make_script_with_merges(struct pretty_print_context *pp,
 
 	oidmap_free(&commit2todo, 1);
 	oidmap_free(&state.commit2label, 1);
-	hashmap_free(&state.labels, 1);
+	hashmap_free_entries(&state.labels, struct labels_entry, entry);
 	strbuf_release(&state.buf);
 
 	return 0;
@@ -5098,9 +5102,15 @@ struct subject2item_entry {
 };
 
 static int subject2item_cmp(const void *fndata,
-			    const struct subject2item_entry *a,
-			    const struct subject2item_entry *b, const void *key)
+			    const struct hashmap_entry *eptr,
+			    const struct hashmap_entry *entry_or_key,
+			    const void *key)
 {
+	const struct subject2item_entry *a, *b;
+
+	a = container_of(eptr, const struct subject2item_entry, entry);
+	b = container_of(entry_or_key, const struct subject2item_entry, entry);
+
 	return key ? strcmp(a->subject, key) : strcmp(a->subject, b->subject);
 }
 
@@ -5133,8 +5143,7 @@ int todo_list_rearrange_squash(struct todo_list *todo_list)
 	 * In that case, last[i] will indicate the index of the latest item to
 	 * be moved to appear after the i'th.
 	 */
-	hashmap_init(&subject2item, (hashmap_cmp_fn) subject2item_cmp,
-		     NULL, todo_list->nr);
+	hashmap_init(&subject2item, subject2item_cmp, NULL, todo_list->nr);
 	ALLOC_ARRAY(next, todo_list->nr);
 	ALLOC_ARRAY(tail, todo_list->nr);
 	ALLOC_ARRAY(subjects, todo_list->nr);
@@ -5177,8 +5186,11 @@ int todo_list_rearrange_squash(struct todo_list *todo_list)
 					break;
 			}
 
-			if ((entry = hashmap_get_from_hash(&subject2item,
-							   strhash(p), p)))
+			entry = hashmap_get_entry_from_hash(&subject2item,
+						strhash(p), p,
+						struct subject2item_entry,
+						entry);
+			if (entry)
 				/* found by title */
 				i2 = entry->i;
 			else if (!strchr(p, ' ') &&
@@ -5212,8 +5224,9 @@ int todo_list_rearrange_squash(struct todo_list *todo_list)
 						strhash(subject), subject)) {
 			FLEX_ALLOC_MEM(entry, subject, subject, subject_len);
 			entry->i = i;
-			hashmap_entry_init(entry, strhash(entry->subject));
-			hashmap_put(&subject2item, entry);
+			hashmap_entry_init(&entry->entry,
+					strhash(entry->subject));
+			hashmap_put(&subject2item, &entry->entry);
 		}
 	}
 
@@ -5247,7 +5260,7 @@ int todo_list_rearrange_squash(struct todo_list *todo_list)
 	for (i = 0; i < todo_list->nr; i++)
 		free(subjects[i]);
 	free(subjects);
-	hashmap_free(&subject2item, 1);
+	hashmap_free_entries(&subject2item, struct subject2item_entry, entry);
 
 	clear_commit_todo_item(&commit_todo);
 
